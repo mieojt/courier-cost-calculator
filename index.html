@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f5f5f7" />
+  <title>寄件成本</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="寄件成本首页">
+      <span class="brand-mark" aria-hidden="true">寄</span>
+      <span>寄件成本</span>
+    </a>
+    <div class="top-actions">
+      <span id="fileStatus" class="status-pill">等待导入</span>
+      <button id="settingsButton" class="icon-button" type="button" aria-label="打开设置">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.25A3.25 3.25 0 1 0 12 8.75a3.25 3.25 0 0 0 0 6.5Zm8-3.25c0-.5-.05-.98-.14-1.45l2-1.56-2-3.46-2.5 1a8.25 8.25 0 0 0-2.5-1.45L14.48 2h-4l-.38 3.08a8.25 8.25 0 0 0-2.5 1.45l-2.5-1-2 3.46 2 1.56A7.7 7.7 0 0 0 4.96 12c0 .5.05.98.14 1.45l-2 1.56 2 3.46 2.5-1a8.25 8.25 0 0 0 2.5 1.45l.38 3.08h4l.38-3.08a8.25 8.25 0 0 0 2.5-1.45l2.5 1 2-3.46-2-1.56c.09-.47.14-.95.14-1.45Z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section id="intro" class="intro">
+      <p class="eyebrow">快递账单，一次看清</p>
+      <h1>把表格拖进来，<br />成本就算好了。</h1>
+      <p class="intro-copy">自动识别寄件时间与内部计费重量，按月份汇总总价格、总件数和均价。</p>
+    </section>
+
+    <section id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="选择或拖入表格">
+      <input id="fileInput" type="file" accept=".xls,.xlsx,.csv" multiple hidden />
+      <div class="upload-symbol" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4.25A1.75 1.75 0 0 0 6.75 20h10.5A1.75 1.75 0 0 0 19 18.25V14"/></svg>
+      </div>
+      <div>
+        <strong>拖入 Excel 表格</strong>
+        <span>或点按选择，可同时导入多个 .xls / .xlsx / .csv</span>
+      </div>
+    </section>
+
+    <section id="dashboard" class="dashboard" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">综合结果</p>
+          <h2 id="rangeTitle">全部月份</h2>
+        </div>
+        <button id="exportButton" class="primary-button" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 18v2h14v-2"/></svg>
+          导出统计表
+        </button>
+      </div>
+
+      <div class="hero-metrics">
+        <article class="metric-card metric-primary">
+          <span>总价格</span>
+          <strong id="totalCost">¥0.00</strong>
+          <small id="costCaption">按当前计费公式</small>
+          <div class="top-up-line">
+            <span>扣除已购面单后需补差价</span>
+            <strong id="topUpCost">¥0.00</strong>
+            <small id="labelDeduction">已扣除面单 ¥0.00</small>
+          </div>
+        </article>
+        <article class="metric-card">
+          <span>总件数</span>
+          <strong id="totalCount">0</strong>
+          <small>有效寄件记录</small>
+        </article>
+        <article class="metric-card">
+          <span>均价</span>
+          <strong id="averageCost">¥0.00</strong>
+          <small>总价格 ÷ 总件数</small>
+        </article>
+      </div>
+
+      <div class="detail-block">
+        <div class="detail-heading">
+          <div>
+            <h3>月份明细</h3>
+            <p>点开月份查看首重件数与重量分段</p>
+          </div>
+          <span id="monthCount" class="quiet-count"></span>
+        </div>
+        <div id="monthList" class="month-list"></div>
+      </div>
+
+      <details class="detail-block source-block">
+        <summary>
+          <div>
+            <h3>导入与检查</h3>
+            <p id="sourceSummary">查看文件与异常记录</p>
+          </div>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
+        <div id="sourceDetails" class="source-details"></div>
+      </details>
+    </section>
+  </main>
+
+  <dialog id="settingsDialog" class="settings-dialog">
+    <form id="settingsForm" method="dialog">
+      <div class="settings-head">
+        <div>
+          <p class="eyebrow">计费设置</p>
+          <h2>公式与分段</h2>
+        </div>
+        <button id="closeSettings" class="close-button" type="button" aria-label="关闭设置">×</button>
+      </div>
+
+      <div class="form-section">
+        <h3>基础价格</h3>
+        <div class="form-grid four">
+          <label>首重重量（kg）<input name="firstWeight" type="number" min="0.01" step="0.01" required /></label>
+          <label>首重价格（元）<input name="firstPrice" type="number" min="0" step="0.01" required /></label>
+          <label>续重价格（元/kg）<input name="additionalPrice" type="number" min="0" step="0.01" required /></label>
+          <label>面单单价（元/个）<input name="labelPrice" type="number" min="0" step="0.01" required /></label>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>续重方式</h3>
+        <div class="segmented" role="radiogroup" aria-label="续重方式">
+          <label><input type="radio" name="rounding" value="ceil" /><span>1kg 进位</span></label>
+          <label><input type="radio" name="rounding" value="exact" /><span>实际重量</span></label>
+          <label><input type="radio" name="rounding" value="custom" /><span>自定义公式</span></label>
+        </div>
+        <label class="field-gap">续重步长（kg）<input name="step" type="number" min="0.01" step="0.01" required /></label>
+      </div>
+
+      <div id="formulaSection" class="form-section formula-section">
+        <div class="label-row">
+          <h3>计费公式</h3>
+          <button id="resetFormula" class="text-button" type="button">恢复推荐公式</button>
+        </div>
+        <textarea name="formula" rows="3" spellcheck="false"></textarea>
+        <p class="help">可用变量：weight、firstWeight、firstPrice、additionalPrice、step。可用函数：ceil、floor、round、max、min、abs。</p>
+        <p id="formulaPreview" class="formula-preview"></p>
+      </div>
+
+      <div class="form-section">
+        <h3>重量分段</h3>
+        <label>分界值（kg）<input name="bucketCuts" type="text" placeholder="1, 2, 3, 5" /></label>
+        <p class="help">用英文逗号分隔。结果将显示 ≤1kg、1–2kg、2–3kg、3–5kg、&gt;5kg。</p>
+      </div>
+
+      <label class="switch-row">
+        <span><strong>导入后自动导出</strong><small>计算完成后立即下载月度统计表</small></span>
+        <input name="autoExport" type="checkbox" />
+        <i aria-hidden="true"></i>
+      </label>
+
+      <div class="settings-actions">
+        <button id="resetSettings" class="secondary-button" type="button">恢复默认</button>
+        <button class="primary-button" type="submit">保存并重算</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
